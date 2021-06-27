@@ -16,10 +16,17 @@ createConnection().then(db=> {
     app.use(express.json())
 
     app.get('/api/products', async (req: Request, res: Response) => {
-        const products = await prodcutRepository.find()
+        const products = await prodcutRepository.find();
         res.json(products);
     });
-    
+
+    app.post('/api/products', async (req: Request, res: Response) => {
+        const product = await prodcutRepository.create(req.body);
+        console.log(product);
+       const results = await prodcutRepository.save(product);
+        return res.json(results);
+
+    });
     console.log("listen 8080")
 
     app.listen(8080)
