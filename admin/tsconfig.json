@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "libs" : [
+    "lib" : [
       "es5",
       "es6",
       "dom"
