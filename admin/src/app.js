@@ -40,9 +40,14 @@ var express = require("express");
 var cors = require("cors");
 var typeorm_1 = require("typeorm");
 var product_1 = require("./entity/product");
+var kafkajs_1 = require("kafkajs");
 typeorm_1.createConnection().then(function (db) {
     var prodcutRepository = db.getRepository(product_1.Product);
     var app = express();
+    var kafka = new kafkajs_1.Kafka({
+        clientId: 'node-admin',
+        brokers: ['localhost:9092']
+    });
     app.use(cors({
         origin: ['http://localhost:4200', 'http://localhost:3000', 'http://localhost:8080']
     }));
@@ -60,7 +65,7 @@ typeorm_1.createConnection().then(function (db) {
         });
     }); });
     app.post('/api/products', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var product, results;
+        var product, results, producer, consumer;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, prodcutRepository.create(req.body)];
@@ -70,6 +75,46 @@ typeorm_1.createConnection().then(function (db) {
                     return [4 /*yield*/, prodcutRepository.save(product)];
                 case 2:
                     results = _a.sent();
+                    producer = kafka.producer();
+                    return [4 /*yield*/, producer.connect()];
+                case 3:
+                    _a.sent();
+                    return [4 /*yield*/, producer.send({
+                            topic: 'node-order',
+                            messages: [
+                                { value: results.toString() },
+                            ],
+                        })];
+                case 4:
+                    _a.sent();
+                    return [4 /*yield*/, producer.disconnect()];
+                case 5:
+                    _a.sent();
+                    consumer = kafka.consumer({ groupId: 'node-client-group' });
+                    return [4 /*yield*/, consumer.connect()];
+                case 6:
+                    _a.sent();
+                    return [4 /*yield*/, consumer.subscribe({ topic: 'node-order', fromBeginning: true })];
+                case 7:
+                    _a.sent();
+                    return [4 /*yield*/, consumer.run({
+                            eachMessage: function (_a) {
+                                var topic = _a.topic, partition = _a.partition, message = _a.message;
+                                return __awaiter(void 0, void 0, void 0, function () {
+                                    return __generator(this, function (_b) {
+                                        console.log({
+                                            value: message.value.toString(),
+                                        });
+                                        return [2 /*return*/];
+                                    });
+                                });
+                            },
+                        })
+                        // await consumer.disconnect();
+                    ];
+                case 8:
+                    _a.sent();
+                    // await consumer.disconnect();
                     return [2 /*return*/, res.json(results)];
             }
         });
